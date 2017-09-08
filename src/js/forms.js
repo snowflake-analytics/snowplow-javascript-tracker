@@ -143,6 +143,58 @@ object.getFormTrackingManager = function (core, trackerId, contextAdder) {
 		};
 	}
 
+	/*
+	 * Return function to handle form focus events
+	 */
+	function getFormFocusListener(context) {
+		return function (e) {
+			var elt = e.target;
+			var from = e.relatedTarget;
+			var type = (elt.nodeName && elt.nodeName.toUpperCase() === 'INPUT') ? elt.type : null;
+			var ftype = (elt.nodeName && elt.nodeName.toUpperCase() === 'INPUT') ? elt.type : null;
+			var value = (elt.type === 'checkbox' && !elt.checked) ? null : elt.value;
+			var fvalue = (elt.type === 'checkbox' && !elt.checked) ? null : elt.value;
+
+			(function(formId, fromElementId, fromNodeName, fromType, fromElementClasses, fromValue, toElementId, toNodeName, toType, toValue){
+				core.trackSelfDescribingEvent({
+					schema: 'iglu:com.snowflakeanalytics.snowplow/focus_form/jsonschema/1-0-0',
+					data: {
+						formId: formId,
+						fromElementId: fromElementId,
+						fromNodeName: fromNodeName,
+						fromType: fromType,
+						fromElementClasses: fromElementClasses,
+						fromValue: fromValue,
+						toElementId: toElementId,
+						toNodeName: toNodeName,
+						toType: toType,
+						toElementClasses: toElementClasses,
+						toValue: toValue
+					}
+				}, context);
+			}).apply(valueInterceptor(
+				'focus',
+				getParentFormName(elt),
+
+				// Previous element details
+				from && getFormElementName(from),
+				from && from.nodeName,
+				ftype,
+				from && helpers.getCssClasses(from),
+				fvalue,
+
+				// Current element details
+				getFormElementName(elt),
+				elt.nodeName,
+				type,
+				helpers.getCssClasses(elt),
+				value,
+
+				contextAdder(helpers.resolveDynamicContexts(context, elt, type, value))
+			));
+		}
+	}
+
 	return {
 
 		/*
@@ -168,6 +220,7 @@ object.getFormTrackingManager = function (core, trackerId, contextAdder) {
 						lodash.forEach(form.getElementsByTagName(tagname), function (innerElement) {
 							if (fieldFilter(innerElement) && !innerElement[trackingMarker] && innerElement.type.toLowerCase() !== 'password') {
 								helpers.addEventListener(innerElement, 'change', getFormChangeListener(context), false);
+								helpers.addEventListener(innerElement, 'focus', getFormFocusListener(context), true);
 								innerElement[trackingMarker] = true;
 							}
 						});
