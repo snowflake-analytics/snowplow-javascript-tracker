@@ -58,6 +58,10 @@ object.getFormTrackingManager = function (core, trackerId, contextAdder) {
 	// Filter to determine which form fields should be tracked
 	var fieldFilter = function () { return true };
 
+	// Function to modify tracked field values
+	var valueInterceptor = function(method){ return [].slice.call(arguments, 1) };
+
+
 	/*
 	 * Get an identifier for a form, input, textarea, or select element
 	 */
@@ -124,7 +128,7 @@ object.getFormTrackingManager = function (core, trackerId, contextAdder) {
 			var elt = e.target;
 			var type = (elt.nodeName && elt.nodeName.toUpperCase() === 'INPUT') ? elt.type : null;
 			var value = (elt.type === 'checkbox' && !elt.checked) ? null : elt.value;
-			core.trackFormChange(getParentFormName(elt), getFormElementName(elt), elt.nodeName, type, helpers.getCssClasses(elt), value, contextAdder(helpers.resolveDynamicContexts(context, elt, type, value)));
+			core.trackFormChange.apply(core, valueInterceptor('change', getParentFormName(elt), getFormElementName(elt), elt.nodeName, type, helpers.getCssClasses(elt), value, contextAdder(helpers.resolveDynamicContexts(context, elt, type, value))));
 		};
 	}
 
@@ -135,7 +139,7 @@ object.getFormTrackingManager = function (core, trackerId, contextAdder) {
 		return function (e) {
 			var elt = e.target;
 			var innerElements = getInnerFormElements(elt);
-			core.trackFormSubmission(getFormElementName(elt), helpers.getCssClasses(elt), innerElements, contextAdder(helpers.resolveDynamicContexts(context, elt, innerElements)));
+			core.trackFormSubmission.apply(core, valueInterceptor('submit', getFormElementName(elt), helpers.getCssClasses(elt), innerElements, contextAdder(helpers.resolveDynamicContexts(context, elt, innerElements))));
 		};
 	}
 
@@ -148,6 +152,7 @@ object.getFormTrackingManager = function (core, trackerId, contextAdder) {
 			if (config) {
 				formFilter = helpers.getFilter(config.forms, true);
 				fieldFilter = helpers.getFilter(config.fields, false);
+				valueInterceptor = config.interceptor || valueInterceptor;
 			}
 		},
 
