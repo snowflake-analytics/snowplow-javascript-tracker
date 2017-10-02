@@ -1331,6 +1331,14 @@
 				geolocationContextAdded = true;
 				navigatorAlias.geolocation.getCurrentPosition(function (position) {
 					var coords = position.coords;
+
+					// we don't use Number.isInteger here as it is not supported in IE11 and below
+					if (position.timestamp % 1 !== 0) {
+						positionTimestamp = position.timestamp * 1000
+					} else {
+						positionTimestamp = position.timestamp
+					}
+
 					var geolocationContext = {
 						schema: 'iglu:com.snowplowanalytics.snowplow/geolocation_context/jsonschema/1-1-0',
 						data: {
@@ -1341,7 +1349,7 @@
 							altitudeAccuracy: coords.altitudeAccuracy,
 							bearing: coords.heading,
 							speed: coords.speed,
-							timestamp: position.timestamp
+							timestamp: positionTimestamp
 						}
 					};
 					commonContexts.push(geolocationContext);
